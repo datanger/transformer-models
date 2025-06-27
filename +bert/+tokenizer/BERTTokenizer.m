@@ -204,8 +204,30 @@ classdef BERTTokenizer
             if ~isempty(text_b) && numel(text_a)~=numel(text_b)
                 error("bert:tokenizer:SentencePairNumelMismatch","For sentence-pairs, both inputs must have the same number of elements");
             end
+            
+            % Check cache for repeated inputs
+            persistent encodeCache
+            if isempty(encodeCache)
+                encodeCache = containers.Map('KeyType', 'char', 'ValueType', 'any');
+            end
+            
+            % Create cache key
+            if isempty(text_b)
+                cacheKey = sprintf('single_%d', hash(string(text_a)));
+            else
+                cacheKey = sprintf('pair_%d_%d', hash(string(text_a)), hash(string(text_b)));
+            end
+            
+            if encodeCache.isKey(cacheKey)
+                x = encodeCache(cacheKey);
+                return;
+            end
+            
             tokens = this.tokenize(text_b,text_a);
             x = this.encodeTokens(tokens);
+            
+            % Store in cache
+            encodeCache(cacheKey) = x;
         end
         
         function text = decode(this,x)

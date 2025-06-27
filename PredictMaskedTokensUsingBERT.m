@@ -32,7 +32,7 @@ strMasked = replace(str,"sources",tokenizer.MaskToken)
 % function returns the original string with the mask tokens replaced.
 sentencePred = predictMaskedToken(mdl,strMasked)
 
-%% Calculate Prediction Scores
+%% Calculate Prediction Scores with Top-K Sampling
 % To get the prediction scores for each word in the model vocabulary, you
 % can evaluate the language model directly using the |bert.languageModel|
 % function.
@@ -62,9 +62,15 @@ X{1}
 scores = bert.languageModel(X{1},mdl.Parameters);
 
 %%
+% Apply top-k sampling to improve prediction diversity
+k = 5;
+maskedScores = scores(:,idx);
+filteredScores = sampling.topKLogits(maskedScores, k);
+
+%%
 % View the tokens of the BERT model vocabulary corresponding to the top 10
 % prediction scores for the mask token.
-[~,idxTop] = maxk(extractdata(scores(:,idx)),10);
+[~,idxTop] = maxk(extractdata(filteredScores),10);
 tbl = table;
 tbl.Token = arrayfun(@(x) decode(tokenizer,x), idxTop);
-tbl.Score = scores(idxTop,idx)
+tbl.Score = filteredScores(idxTop,idx)
